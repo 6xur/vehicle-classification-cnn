@@ -1,0 +1,6 @@
+@inproceedings{yao2020simulating,
+  title={Simulating Content Consistent Vehicle Datasets with Attribute Descent},
+  author={Yao, Yue and Zheng, Liang and Yang, Xiaodong and Naphade, Milind and Gedeon, Tom},
+  booktitle={ECCV},
+  year={2020}
+}
