@@ -23,6 +23,26 @@ class CustomDataset():
     def __getitem__(self, idx):
         return self.data[idx], self.labels[idx]
 
+
+class ConvNet(nn.Module):
+    def __init__(self):
+        super(ConvNet, self).__init__()
+        self.conv1 = nn.Conv2d(1, 6, 5)
+        self.pool = nn.MaxPool2d(2, 2)
+        self.conv2 = nn.Conv2d(6, 16, 5)
+        self.fc1 = nn.Linear(16 * 5 * 13, 120)
+        self.fc2 = nn.Linear(120, 84)
+        self.fc3 = nn.Linear(84, 1362)
+
+    def forward(self, x):
+        x = self.pool(F.relu(self.conv1(x)))
+        x = self.pool(F.relu(self.conv2(x)))
+        x = x.view(-1, 16 * 5 * 13)
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
 train_data = []
 vehicle_ids = []
 
@@ -30,8 +50,8 @@ vehicle_ids = []
 for i, file_name in enumerate(os.listdir(train_directory)):
 
     # Limit elements in Tensor for testing, remove this when ready for full-scale training
-    if(i % 3000 == 0):
-        print(i)
+    if(i == 1000):
+        break
 
     # Extract vehicle ID from the filename
     vehicle_id = int(file_name.split('_')[0])
@@ -57,25 +77,6 @@ train_dataset = CustomDataset(train_data, vehicle_ids)
 train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
 
-class ConvNet(nn.Module):
-    def __init__(self):
-        super(ConvNet, self).__init__()
-        self.conv1 = nn.Conv2d(1, 6, 5)
-        self.pool = nn.MaxPool2d(2, 2)
-        self.conv2 = nn.Conv2d(6, 16, 5)
-        self.fc1 = nn.Linear(16 * 5 * 13, 120)
-        self.fc2 = nn.Linear(120, 84)
-        self.fc3 = nn.Linear(84, 1362)
-
-    def forward(self, x):
-        x = self.pool(F.relu(self.conv1(x)))
-        x = self.pool(F.relu(self.conv2(x)))
-        x = x.view(-1, 16 * 5 * 13)
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
-        return x
-
 model = ConvNet()
 
 criterion = nn.CrossEntropyLoss()
@@ -95,5 +96,7 @@ for epoch in range(num_epochs):
         loss.backward()
         optimizer.step()
 
-        if (i + 1) % 1000 == 0:
+        if (i + 1) % 1 == 0:
             print(f'Epoch [{epoch + 1}/{num_epochs}], step[{i + 1}], loss: {loss.item():.4f}')
+
+
