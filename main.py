@@ -5,11 +5,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 
-# Hyperparameters
-num_epochs = 10
-batch_size = 4
-learning_rate = 0.001
-
 train_directory = "vehicle-x/train"
 
 class CustomDataset():
@@ -30,8 +25,8 @@ vehicle_ids = []
 for i, file_name in enumerate(os.listdir(train_directory)):
 
     # Limit elements in Tensor for testing, remove this when ready for full-scale training
-    if(i % 3000 == 0):
-        print(i)
+    if(i == 3000):
+        break
 
     # Extract vehicle ID from the filename
     vehicle_id = int(file_name.split('_')[0])
@@ -46,10 +41,19 @@ for i, file_name in enumerate(os.listdir(train_directory)):
     reshaped_data = loaded_data.reshape((1, 32, 64))
     train_data.append(reshaped_data)
 
+# Hyperparameters
+num_epochs = 20
+batch_size = 4
+learning_rate = 0.01
+
 # Converting training data and labels to PyTorch Tensor
 train_data = np.array(train_data)
 train_data = torch.from_numpy(train_data)
 vehicle_ids = torch.tensor(vehicle_ids, dtype=torch.long)
+
+# Adjust labels to be in range 0 to 1361
+if(torch.min(vehicle_ids).item() == 1):
+    vehicle_ids = vehicle_ids - 1
 
 # Create custom dataset from the tensors
 train_dataset = CustomDataset(train_data, vehicle_ids)
@@ -81,6 +85,8 @@ model = ConvNet()
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
 
+model.train()
+correct = 0
 for epoch in range(num_epochs):
     for i, (images,labels) in enumerate(train_loader):
         # origin shape: [4, 1, 32, 64] = 4, 1, 2048
@@ -90,10 +96,16 @@ for epoch in range(num_epochs):
         outputs = model(images)
         loss = criterion(outputs, labels)
 
+        pred = outputs.data.max(1, keepdim=True)[1] # get the index of the max log-probability
+        correct += pred.eq(labels.data.view_as(pred)).long().cpu().sum()
+
         # Backward and optimize
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
-        if (i + 1) % 1000 == 0:
+        if (i + 1) % 200 == 0:
             print(f'Epoch [{epoch + 1}/{num_epochs}], step[{i + 1}], loss: {loss.item():.4f}')
+
+    print(correct / len(train_loader.dataset))
+
