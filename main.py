@@ -7,17 +7,6 @@ import matplotlib.pyplot as plt
 
 train_directory = "vehicle-x/train"
 
-class CustomDataset():
-    def __init__(self, data_array, labels):
-        self.data = data_array
-        self.labels = labels
-
-    def __len__(self):
-        return len(self.data)
-
-    def __getitem__(self, idx):
-        return self.data[idx], self.labels[idx]
-
 train_data = []
 vehicle_ids = []
 
@@ -41,11 +30,6 @@ for i, file_name in enumerate(os.listdir(train_directory)):
     reshaped_data = loaded_data.reshape((1, 32, 64))
     train_data.append(reshaped_data)
 
-# Hyperparameters
-num_epochs = 20
-batch_size = 4
-learning_rate = 0.01
-
 # Converting training data and labels to PyTorch Tensor
 train_data = np.array(train_data)
 train_data = torch.from_numpy(train_data)
@@ -55,11 +39,26 @@ vehicle_ids = torch.tensor(vehicle_ids, dtype=torch.long)
 if(torch.min(vehicle_ids).item() == 1):
     vehicle_ids = vehicle_ids - 1
 
+# Hyperparameters
+num_epochs = 20
+batch_size = 32
+learning_rate = 0.01
+
+class CustomDataset():
+    def __init__(self, data_array, labels):
+        self.data = data_array
+        self.labels = labels
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        return self.data[idx], self.labels[idx]
+
 # Create custom dataset from the tensors
 train_dataset = CustomDataset(train_data, vehicle_ids)
 
 train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-
 
 class ConvNet(nn.Module):
     def __init__(self):
@@ -85,12 +84,11 @@ model = ConvNet()
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)
 
-model.train()
-correct = 0
-for epoch in range(num_epochs):
-    for i, (images,labels) in enumerate(train_loader):
-        # origin shape: [4, 1, 32, 64] = 4, 1, 2048
-        #print(images.shape, labels)
+def train():
+    model.train()
+    correct = 0
+
+    for batch_idx, (images, labels) in enumerate(train_loader):
 
         # Forward pass
         outputs = model(images)
@@ -104,8 +102,11 @@ for epoch in range(num_epochs):
         loss.backward()
         optimizer.step()
 
-        if (i + 1) % 200 == 0:
-            print(f'Epoch [{epoch + 1}/{num_epochs}], step[{i + 1}], loss: {loss.item():.4f}')
 
-    print(correct / len(train_loader.dataset))
+        if (batch_idx + 1) % 50 == 0:
+            print(f'Epoch [{epoch + 1}/{num_epochs}], step[{batch_idx + 1}], loss: {loss.item():.4f}')
 
+    print('Accuracy:{}/{}'.format(correct, len(train_loader.dataset)))
+
+for epoch in range(num_epochs):
+    train()
